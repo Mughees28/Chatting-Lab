@@ -28,10 +28,9 @@ SECRET_KEY = "django-insecure-hs-d0(e6#(a1n+%fkq=tih+dg8ucb)5n@c&tr-k8-hnogc%rm@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost',
+ALLOWED_HOSTS = [
     '127.0.0.1',
-    'visualab.vercel.app',
-    'visual-mtfjprgfb-mughees-projects-9c5aaeaa.vercel.app']
+    'chattinglab.vercel.app']
 
 
 # Application definition
