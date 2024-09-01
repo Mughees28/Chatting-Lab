@@ -1,11 +1,15 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
+import logging
+import json
 from django.contrib.auth import authenticate, login, logout
-from .models import Room, Topic, Message, User
+from .models import Room,Topic, Message,User
 from .forms import RoomForm, UserForm, MyUserCreationForm
+from django.views.decorators.csrf import csrf_exempt
+
 
 # Create your views here.
 
@@ -83,24 +87,43 @@ def home(request):
     return render(request, 'base/home.html', context)
 
 
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
 def room(request, pk):
-    room = Room.objects.get(id=pk)
-    room_messages = room.message_set.all()
+    room = get_object_or_404(Room, id=pk)
+    room_messages = room.message_set.all().order_by('-created')
     participants = room.participants.all()
 
-    if request.method == 'POST':
-        message = Message.objects.create(
-            user=request.user,
-            room=room,
-            body=request.POST.get('body')
-        )
-        room.participants.add(request.user)
-        return redirect('room', pk=room.id)
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        try:
+            data = json.loads(request.body)
+            body = data.get('message')
 
-    context = {'room': room, 'room_messages': room_messages,
-               'participants': participants}
+            if not body:
+                raise ValueError("Message body is empty")
+
+            message = Message.objects.create(
+                user=request.user,
+                room=room,
+                body=body
+            )
+            room.participants.add(request.user)
+
+            return JsonResponse({
+                'message': message.body,
+                'user_id': message.user.id,
+                'username': message.user.username,
+                'user_avatar': message.user.avatar.url,
+                'message_id': message.id,
+                'is_user': True,
+                'created_at': message.created.strftime('%Y-%m-%d %H:%M:%S')  # Return the created time
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    context = {'room': room, 'room_messages': room_messages, 'participants': participants}
     return render(request, 'base/room.html', context)
-
 
 def userProfile(request, pk):
     user = User.objects.get(id=pk)
