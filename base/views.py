@@ -89,7 +89,7 @@ def home(request):
 
 logger = logging.getLogger(__name__)
 
-@login_required(login_url='login')
+#@login_required(login_url='login')
 @csrf_exempt
 def room(request, pk):
     room = get_object_or_404(Room, id=pk)
